@@ -169,6 +169,8 @@ graph_t *DGLPart_ReadGraph(char *fstem, char *lstnfiles, char *lstefiles, MPI_Co
   FILE *fpin=NULL;
   FILE *fpinaux=NULL;
   char *newstr, *curstr;  
+  idx_t num_nfiles;
+  idx_t num_efiles;
 
   idxwidth = sizeof(idx_t);
 
@@ -181,17 +183,22 @@ graph_t *DGLPart_ReadGraph(char *fstem, char *lstnfiles, char *lstefiles, MPI_Co
 
   sprintf(filename, "%s_stats.txt", fstem);
   if (!gk_fexists(filename)) {
-    printf("ERROR: File '%s' does not exists.\n", filename);
+    printf("[%d] ERROR: File '%s' does not exists.\n", mype, filename);
     ier++;
   }
 
   //sprintf(filename, "%s_edges_%02d.txt", fstem, mype);
   if (!gk_fexists(lstnfiles)) {
-    printf("ERROR: File '%s' does not exists.\n", filename);
+    printf("[%d] ERROR: File '%s' does not exists.\n", mype, lstnfiles);
     ier++;
   }
   fpin = gk_fopen(lstnfiles, "r", "DGLPart_ReadGraph: lstnfile.txt");
+
+  num_nfiles = -1;
   while(gk_getline(&line, &lnlen, fpin) != -1) {
+    num_nfiles ++;
+    if ((num_nfiles % npes) != mype)
+      continue;
     /* Token this line for file_name and global starting nid for this files nodes */
     curstr = line;
     curstr = strtok(curstr, " ");
@@ -201,7 +208,7 @@ graph_t *DGLPart_ReadGraph(char *fstem, char *lstnfiles, char *lstefiles, MPI_Co
       curstr[ln] = 0;
 
     if (!gk_fexists(curstr)){
-      printf("ERROR: File '%s' does not exists.\n", filename);
+      printf("[%d] ERROR: File '%s' does not exists.\n", mype, curstr);
       ier++;
       break;
     }
@@ -210,11 +217,16 @@ graph_t *DGLPart_ReadGraph(char *fstem, char *lstnfiles, char *lstefiles, MPI_Co
 
   //sprintf(filename, "%s_nodes_%02d.txt", fstem, mype);
   if (!gk_fexists(lstefiles)) {
-    printf("ERROR: File '%s' does not exists.\n", filename);
+    printf("[%d] ERROR: File '%s' does not exists.\n", mype, lstefiles);
     ier++;
   }
   fpin = gk_fopen(lstefiles, "r", "DGLPart_ReadGraph: lstefile.txt");
+
+  num_efiles = -1;
   while(gk_getline(&line, &lnlen, fpin) != -1) {
+    num_efiles ++;
+    if ((num_efiles % npes) != mype)
+      continue;
     /* Token this line for file_name and global starting nid for this files nodes */
     curstr = line;
     newstr = NULL;
@@ -223,9 +235,9 @@ graph_t *DGLPart_ReadGraph(char *fstem, char *lstnfiles, char *lstefiles, MPI_Co
     if (*curstr && curstr[ln] == '\n')
       curstr[ln] = 0;
     if (!gk_fexists(curstr)){
-      printf("ERROR: File '%s' does not exists.\n", filename);
+      printf("[%d] ERROR: File '%s' does not exists.\n", mype, curstr);
       ier++;
-      break;
+      //break;
     }
   }
   gk_fclose(fpin);
